@@ -43,11 +43,11 @@ class NeuralNetwork:
         self.levels = 3
 
         self.var = {
-            "W1": 2.5 * np.random.randn(2,20) +3 ,
+            "W1": np.random.randn(2,20),
             "b1": np.random.random_sample([1,1]),
-            "W2": 2.5 * np.random.randn(20,15) +3 ,
+            "W2":  np.random.randn(20,15) ,
             "b2": np.random.random_sample([1,1]),
-            "W3": 2.5 * np.random.randn(15,1) +3 ,
+            "W3": np.random.randn(15,1) ,
             "b3": np.random.random_sample([1,1])
         }
 
@@ -139,6 +139,13 @@ class NeuralNetwork:
         self.var['W3'] = self.var['W3'] - (data['W3']*learning_rate)
         self.var['b3'] = self.var['b3'] - (data['b3']*learning_rate)
 
+    def momentum(self, data, learning_rate, momentum_parameter = 0.9):
+        self.var['W1'] =  (data['W1'] * learning_rate) + (momentum_parameter*self.var['W1'])
+        self.var['b1'] =  (data['b1'] * learning_rate) + (momentum_parameter*self.var['b1'])
+        self.var['W2'] =  (data['W2'] * learning_rate) + (momentum_parameter*self.var['W2'])
+        self.var['b2'] =  (data['b2'] * learning_rate) + (momentum_parameter*self.var['b2'])
+        self.var['W3'] =  (data['W3'] * learning_rate) + (momentum_parameter*self.var['W3'])
+        self.var['b3'] =  (data['b3'] * learning_rate) + (momentum_parameter*self.var['b3'])
 
 
 def gradient_check():
@@ -182,11 +189,11 @@ def run_part2():
     print("WHOLE SET TARGETS: ", len(T))
     print(T)
 
-    learning_rates = [0.02]
-    # , 0.03, 0.04, 0.01, 0.1]
+    learning_rates = [0.01 , 0.03, 0.04, 0.01, 0.1]
 
     # GET THE TRAINING AND TEST DATA WITH SIZE N
     test_size = 80
+    train_size = 25
     test_X, test_T, train_X, train_T = get_input_data(X, T, len(X), test_size)
     print("TEST SET")
     print(test_X)
@@ -200,19 +207,20 @@ def run_part2():
     # CREATE THE NEURAL NETWORK AND TRAIN IT
     nn = NeuralNetwork()
     for learning_rate in learning_rates:
-        for j in range(100):
-            lr_predictions = np.empty([len(test_X)])
-            for i in range(len(train_X)):
+        for j in range(3000):
+            lr_predictions = np.empty([test_size])
+            for i in range(test_size):
                 y = nn.forward(train_X[i])
                 lr_predictions[i] = y
                 error = dMSE(y, train_T[i])
                 weight_adjustments = nn.backward(error)
                 nn.adjust_weights(weight_adjustments, learning_rate)
             mse = MSE(lr_predictions, train_T)[0]
+            print(mse)
             to_plot.append(mse)
-    plt.simple_plot(to_plot)
-    print("FINAL")
-    print(to_plot)
+        plt.simple_plot(to_plot)
+        plt.plot_boundary(nn,test_X, test_T)
+
 
 
 

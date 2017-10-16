@@ -3,6 +3,10 @@ import numpy as np
 def simple_plot(X):
     plt.plot(X)
     plt.show()
+def update_plot(X):
+    plt.plot(X)
+    plt.draw()
+
 
 def plot_data(X,T):
     """
