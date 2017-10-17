@@ -140,12 +140,12 @@ class NeuralNetwork:
         self.var['b3'] = self.var['b3'] - (data['b3']*learning_rate)
 
     def momentum(self, data, learning_rate, momentum_parameter = 0.9):
-        self.var['W1'] =  (data['W1'] * learning_rate) + (momentum_parameter*self.var['W1'])
-        self.var['b1'] =  (data['b1'] * learning_rate) + (momentum_parameter*self.var['b1'])
-        self.var['W2'] =  (data['W2'] * learning_rate) + (momentum_parameter*self.var['W2'])
-        self.var['b2'] =  (data['b2'] * learning_rate) + (momentum_parameter*self.var['b2'])
-        self.var['W3'] =  (data['W3'] * learning_rate) + (momentum_parameter*self.var['W3'])
-        self.var['b3'] =  (data['b3'] * learning_rate) + (momentum_parameter*self.var['b3'])
+        self.var['W1'] =  -(learning_rate * data['W1']) + (momentum_parameter*self.var['W1'])
+        self.var['b1'] =  -(learning_rate * data['b1']) + (momentum_parameter*self.var['b1'])
+        self.var['W2'] =  -(learning_rate * data['W2']) + (momentum_parameter*self.var['W2'])
+        self.var['b2'] =  -(learning_rate * data['b2']) + (momentum_parameter*self.var['b2'])
+        self.var['W3'] =  -(learning_rate * data['W3']) + (momentum_parameter*self.var['W3'])
+        self.var['b3'] =  -(learning_rate * data['b3']) + (momentum_parameter*self.var['b3'])
 
 
 def gradient_check():
@@ -189,12 +189,13 @@ def run_part2():
     print("WHOLE SET TARGETS: ", len(T))
     print(T)
 
-    learning_rates = [0.01 , 0.03, 0.04, 0.01, 0.1]
+    learning_rates = [0.01]
+    # , 0.03, 0.04, 0.01, 0.1]
 
     # GET THE TRAINING AND TEST DATA WITH SIZE N
-    test_size = 80
-    train_size = 25
-    test_X, test_T, train_X, train_T = get_input_data(X, T, len(X), test_size)
+    test_size = 25
+    train_size = 80
+    test_X, test_T, train_X, train_T = get_input_data(X, T, len(X), train_size, test_size)
     print("TEST SET")
     print(test_X)
     print("TEST SET TARGETS")
@@ -206,10 +207,11 @@ def run_part2():
     to_plot = []
     # CREATE THE NEURAL NETWORK AND TRAIN IT
     nn = NeuralNetwork()
+    mse = 1
     for learning_rate in learning_rates:
-        for j in range(3000):
-            lr_predictions = np.empty([test_size])
-            for i in range(test_size):
+        while mse >= 0.02:
+            lr_predictions = np.empty([train_size])
+            for i in range(train_size):
                 y = nn.forward(train_X[i])
                 lr_predictions[i] = y
                 error = dMSE(y, train_T[i])
@@ -217,31 +219,46 @@ def run_part2():
                 nn.adjust_weights(weight_adjustments, learning_rate)
             mse = MSE(lr_predictions, train_T)[0]
             print(mse)
+
             to_plot.append(mse)
         plt.simple_plot(to_plot)
-        plt.plot_boundary(nn,test_X, test_T)
+        plt.plot_boundary(nn, train_X, train_T, 0.5)
+
+        to_plot = []
+        lr_predictions = np.empty([test_size])
+        for i in range(test_size):
+            y = nn.forward(test_X[i])
+            lr_predictions[i] = y
+        mse = MSE(lr_predictions, test_T)[0]
+        print(mse)
+        to_plot.append(mse)
+
+
+        plt.simple_plot(to_plot)
+        plt.plot_boundary(nn, test_X, test_T, 0.5)
 
 
 
 
 
 
-def get_input_data(X,T,len_X,len):
-    test_indexes = np.random.choice(len_X, len)
-    print("INDEXES: ",test_indexes )
-    test_X = np.empty([len, 2])
-    train_X = np.empty([len, 2])
-    test_T = np.empty([len, 1])
-    train_T = np.empty([len, 1])
+
+def get_input_data(X,T,len_X,len_train, len_test):
+    train_indexes = np.random.choice(len_X, len_train)
+    print("INDEXES: ",train_indexes )
+    test_X = np.empty([len_test, 2])
+    train_X = np.empty([len_train, 2])
+    test_T = np.empty([len_test, 1])
+    train_T = np.empty([len_train, 1])
     n = 0
+    for i in train_indexes:
+        train_X[n] = X[i]
+        train_T[n] = T[i]
+        n += 1
+    n = 0
+    test_indexes = np.random.choice(len_X, len_test)
     for i in test_indexes:
         test_X[n] = X[i]
         test_T[n] = T[i]
-        n += 1
-    n = 0
-    test_indexes = np.random.choice(len_X, len)
-    for i in test_indexes:
-        train_X[n] = X[i]
-        train_T[n] = T[i]
         n += 1
     return test_X, test_T, train_X, train_T
