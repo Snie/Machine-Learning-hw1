@@ -9,9 +9,9 @@ def MSE(prediction, target):
     n = prediction.size
 
     ## Implement
-    error = np.absolute(t - y.reshape(-1,1))
-    sum_error = sum(error)
-    meanCost = sum_error**2
+    error = (t - y)**2
+    meanCost = np.sum(error)
+
     meanCost /= 2*n
 
 
@@ -29,8 +29,8 @@ def dMSE(prediction, target):
 
     ## Implement
 
-    #error = (1/n)*sum(y-t)
-    error = y-t
+    error = (1/n)*(y-t)
+    # error = y-t
 
     ## End
     return error

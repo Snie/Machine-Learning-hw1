@@ -50,8 +50,12 @@ class NeuralNetwork:
             "W3": np.random.randn(15,1) ,
             "b3": np.random.random_sample([1,1])
         }
+        self.original = self.var.copy()
 
         ## End
+    def reset(self):
+        self.var = self.original.copy()
+
 
     def forward(self, inputs):
         """
@@ -68,7 +72,7 @@ class NeuralNetwork:
         b3 = self.var['b3']
 
         ## Implement
-        a0 = np.array([inputs])
+        a0 = inputs
 
         z1 = a0.dot(W1) + b1
         a1 = tanh(z1)
@@ -106,7 +110,7 @@ class NeuralNetwork:
         # gradient with respect to every weight
 
         # delta at the last level is (y - Ti) activation'(Z)
-        dW3 = error.dot(dsigmoid(self.preA[2]))
+        dW3 = error * (dsigmoid(self.preA[2]))
         db3 = np.mean(dW3)
 
         # for all the other levels delta is: (next_level_delta)X(next_level_weights)dot(derivative of activation func applied to this level pre activation values)
@@ -177,6 +181,13 @@ def gradient_check():
         else:
             print("[FAIL]")
 
+def run_info(train_error, test_error, weights, learning_rate):
+    return {
+        "error_train" : train_error,
+        "error_test" : test_error,
+        "weights" : weights,
+        "learning_rate" : learning_rate
+    }
 
 def run_part2():
     """
@@ -189,12 +200,11 @@ def run_part2():
     print("WHOLE SET TARGETS: ", len(T))
     print(T)
 
-    learning_rates = [0.01]
-    # , 0.03, 0.04, 0.01, 0.1]
+    learning_rates = [0.02, 0.03, 0.07, 0.01, 0.1, 0.05]
 
     # GET THE TRAINING AND TEST DATA WITH SIZE N
-    test_size = 25
-    train_size = 80
+    test_size = 50
+    train_size = 240
     test_X, test_T, train_X, train_T = get_input_data(X, T, len(X), train_size, test_size)
     print("TEST SET")
     print(test_X)
@@ -204,38 +214,41 @@ def run_part2():
     print(train_X)
     print("TRAIN SET TARGETS")
     print(train_T)
-    to_plot = []
+
+    # some variables for plotting
+    runs_info = []
+    train_plot = []
+    test_plot = []
     # CREATE THE NEURAL NETWORK AND TRAIN IT
     nn = NeuralNetwork()
-    mse = 1
+    train_mse, test_mse = 1, 1
+    n = 0
     for learning_rate in learning_rates:
-        while mse >= 0.02:
-            lr_predictions = np.empty([train_size])
-            for i in range(train_size):
-                y = nn.forward(train_X[i])
-                lr_predictions[i] = y
-                error = dMSE(y, train_T[i])
-                weight_adjustments = nn.backward(error)
-                nn.adjust_weights(weight_adjustments, learning_rate)
-            mse = MSE(lr_predictions, train_T)[0]
-            print(mse)
+        while train_mse >= 0.02:
+            y = nn.forward(train_X)
+            error = dMSE(y, train_T)
+            weight_adjustments = nn.backward(error)
+            nn.adjust_weights(weight_adjustments, learning_rate)
+            train_mse = MSE(y, train_T)
+            train_plot.append(train_mse)
 
-            to_plot.append(mse)
-        plt.simple_plot(to_plot)
+            y = nn.forward(test_X)
+            test_mse = MSE(y, test_T)
+            test_plot.append(test_mse)
+
+            print("Train MSE: ",train_mse," - Test MSE: ", test_mse)
+            n += 1
+
+        print("Iterations: ",n)
+        plt.compare_plots(train_plot, test_plot, train_mse, test_mse, learning_rate)
         plt.plot_boundary(nn, train_X, train_T, 0.5)
+        runs_info.append(run_info(train_plot, test_plot, nn.var.copy(), learning_rate))
+        train_mse, test_mse = 1, 1
+        n = 0
+        train_plot = []
+        test_plot = []
+        nn.reset()
 
-        to_plot = []
-        lr_predictions = np.empty([test_size])
-        for i in range(test_size):
-            y = nn.forward(test_X[i])
-            lr_predictions[i] = y
-        mse = MSE(lr_predictions, test_T)[0]
-        print(mse)
-        to_plot.append(mse)
-
-
-        plt.simple_plot(to_plot)
-        plt.plot_boundary(nn, test_X, test_T, 0.5)
 
 
 

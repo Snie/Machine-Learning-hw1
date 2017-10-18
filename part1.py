@@ -35,7 +35,7 @@ class Perceptron:
         b = self.var['b']
 
         ## Implement
-        y = np.vdot(W, x)+b
+        y = x.dot(W)+b
 
 
         ## End
@@ -61,49 +61,22 @@ def train_one_step(model, learning_rate, inputs, targets):
     Uses the forward and backward function of a model to compute the error and updates the model
     weights while overwritting model.var. Returns the cost.
     """
-    # n is the number of inputs in the input set
-    n = len(inputs)
-    # These three vectors are respectively the outputs y, the error derivatives for each of the elements in the training set
-    # predictions[Y] = [Y1,...,Yn]
-    predictions = np.zeros([n])
-    # the derivative of the error with respect to the bias
-    # biases[[dB]] = [
-    #               [dB1],
-    #               [...],
-    #               [dBn]
-    #              ]
-    biases = np.zeros([n, 1])
-    # the derivative of the error with respect of each weight
-    # weights[[dW1, dW2]] = [
-    #               [dW1.1, dW1.2],
-    #               [...],
-    #               [dWn.1, dWn.2]
-    #              ]
-    weights = np.zeros([n, 2])
-    meanErr = 0
-    ##  loops over each element the input set
-    for i in range(n):
-        # computes the neuron output
-        y = model.forward(inputs[i])
-        # compute the derivative of the error between the input set result and the input set category (target)
-        error = dMSE(y, targets[i])
-        # gets the derivative of the error with respect to the weights (dW) and to the bias (b)
-        dW, b = model.backward(error).values()
-        # insert the output values in the matrices/vectors
-        predictions[i] = y
-        weights[i] = dW
-        biases[i] = b
-        # utility to see the mean derivative of the error
-        meanErr += error
-    # get the mean between all delta weights and biases to adjust weights values
-    new_weights = sum(weights)/n
-    new_bias = sum(biases)/n
-    model.var['W'] = model.var['W'] - (learning_rate * new_weights.reshape(-1, 1))
-    model.var['b'] = model.var['b'] - (learning_rate * new_bias)
 
-    cost = MSE(predictions.reshape(-1,1), targets)
+    # computes the neuron output
+    y = model.forward(inputs)
+    # compute the derivative of the error between the input set result and the input set category (target)
+    error = dMSE(y, targets)
+    # gets the derivative of the error with respect to the weights (dW) and to the bias (b)
+    dW, b = model.backward(error).values()
+    dW = sum(dW)
+    # get the mean between all delta weights and biases to adjust weights values
+    model.var['W'] = model.var['W'] - (learning_rate * dW.reshape(-1, 1))
+    model.var['b'] = model.var['b'] - (learning_rate * b)
+
+    cost = MSE(y, targets)
     print("Predictions:")
-    print(predictions.reshape(-1,1))
+    print(y)
+    print(cost)
     ## End
     return cost
 

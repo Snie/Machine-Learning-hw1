@@ -3,9 +3,20 @@ import numpy as np
 def simple_plot(X):
     plt.plot(X)
     plt.show()
-def update_plot(X):
+
+def close_plot():
+    plt.close()
+
+def compare_plots(X, Y,errorain ,errorest , learning_rate):
+    plt.close()
+    plt.subplot(211)
+    plt.title("Training set, learning rate: " + str(learning_rate) +" MSE: "+ str(errorain)[0:4])
     plt.plot(X)
-    plt.draw()
+
+    plt.subplot(212)
+    plt.title("Test set MSE: "+str(errorest)[0:4])
+    plt.plot(Y)
+    plt.show()
 
 
 def plot_data(X,T):
