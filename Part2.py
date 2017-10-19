@@ -221,22 +221,27 @@ def run_part2():
     test_plot = []
     # CREATE THE NEURAL NETWORK AND TRAIN IT
     nn = NeuralNetwork()
-    train_mse, test_mse = 1, 1
+    train_mse, test_mse = 2, 2
     n = 0
+    old_test = 1
+    # variable to test convergence
+    landa = 0.0000001
     for learning_rate in learning_rates:
-        while train_mse >= 0.02:
+        # convergence testing
+        while abs(old_test - train_mse) >= landa or n <= 1:
             y = nn.forward(train_X)
             error = dMSE(y, train_T)
             weight_adjustments = nn.backward(error)
             nn.adjust_weights(weight_adjustments, learning_rate)
+            old_test = train_mse
             train_mse = MSE(y, train_T)
-            train_plot.append(train_mse)
+            train_plot.append(train_mse) if n % 50 else None
 
             y = nn.forward(test_X)
             test_mse = MSE(y, test_T)
-            test_plot.append(test_mse)
+            test_plot.append(test_mse) if n % 50 else None
 
-            print("Train MSE: ",train_mse," - Test MSE: ", test_mse)
+            print("Train MSE: ",train_mse," - Test MSE: ", test_mse) if n % 50 else None
             n += 1
 
         print("Iterations: ",n)

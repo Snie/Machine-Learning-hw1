@@ -10,12 +10,13 @@ def close_plot():
 def compare_plots(X, Y,errorain ,errorest , learning_rate):
     plt.close()
     plt.subplot(211)
-    plt.title("Training set, learning rate: " + str(learning_rate) +" MSE: "+ str(errorain)[0:4])
+    plt.title("Training set, learning rate: " + str(learning_rate) +" MSE: "+ str(errorain)[0:5])
     plt.plot(X)
 
     plt.subplot(212)
-    plt.title("Test set MSE: "+str(errorest)[0:4])
+    plt.title("Test set MSE: "+str(errorest)[0:5])
     plt.plot(Y)
+    plt.tight_layout()
     plt.show()
 
 
