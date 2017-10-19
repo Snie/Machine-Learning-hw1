@@ -10,10 +10,11 @@ import numpy as np
 import plotters as plt
 from part1 import run_part1
 from Part2 import run_part2
+from Part3 import run_part3
 
 
 
 # run_part1()
 run_part2()
-
+# run_part3()
 

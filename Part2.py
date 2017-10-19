@@ -40,7 +40,6 @@ class NeuralNetwork:
         self.preA = []
         # activations
         self.A = []
-        self.levels = 3
 
         self.var = {
             "W1": np.random.randn(2,20),
@@ -81,12 +80,12 @@ class NeuralNetwork:
         a2 = tanh(z2)
 
         z3 = a2.dot(W3) + b3
-        a4 = sigmoid(z3)
+        a3 = sigmoid(z3)
 
         self.preA = [z1,z2,z3]
-        self.A = [a0,a1,a2,a4]
+        self.A = [a0,a1,a2,a3]
 
-        y = a4
+        y = a3
         ## End
         return y
 
@@ -105,7 +104,6 @@ class NeuralNetwork:
         b3 = self.var['b3']
 
         ## Implement
-        level = self.levels
         # We backpropagate and we dynamically save the partial derivatives to later compute the
         # gradient with respect to every weight
 
@@ -142,15 +140,6 @@ class NeuralNetwork:
         self.var['b2'] = self.var['b2'] - (data['b2']*learning_rate)
         self.var['W3'] = self.var['W3'] - (data['W3']*learning_rate)
         self.var['b3'] = self.var['b3'] - (data['b3']*learning_rate)
-
-    def momentum(self, data, learning_rate, momentum_parameter = 0.9):
-        self.var['W1'] =  -(learning_rate * data['W1']) + (momentum_parameter*self.var['W1'])
-        self.var['b1'] =  -(learning_rate * data['b1']) + (momentum_parameter*self.var['b1'])
-        self.var['W2'] =  -(learning_rate * data['W2']) + (momentum_parameter*self.var['W2'])
-        self.var['b2'] =  -(learning_rate * data['b2']) + (momentum_parameter*self.var['b2'])
-        self.var['W3'] =  -(learning_rate * data['W3']) + (momentum_parameter*self.var['W3'])
-        self.var['b3'] =  -(learning_rate * data['b3']) + (momentum_parameter*self.var['b3'])
-
 
 def gradient_check():
     """
@@ -215,31 +204,35 @@ def run_part2():
     print("TRAIN SET TARGETS")
     print(train_T)
 
+
     # some variables for plotting
     runs_info = []
     train_plot = []
     test_plot = []
     # CREATE THE NEURAL NETWORK AND TRAIN IT
     nn = NeuralNetwork()
+    plt.plot_boundary(nn, test_X, test_T)
+    plt.plot_boundary(nn, train_X, train_T)
+
     train_mse, test_mse = 2, 2
     n = 0
-    old_test = 1
+    old_train = 1
     # variable to test convergence
     landa = 0.0000001
     for learning_rate in learning_rates:
         # convergence testing
-        while abs(old_test - train_mse) >= landa or n <= 1:
+        while abs(old_train - train_mse) >= landa or n <= 1:
             y = nn.forward(train_X)
             error = dMSE(y, train_T)
             weight_adjustments = nn.backward(error)
             nn.adjust_weights(weight_adjustments, learning_rate)
-            old_test = train_mse
+            old_train = train_mse
             train_mse = MSE(y, train_T)
-            train_plot.append(train_mse) if n % 50 else None
+            train_plot.append(train_mse)
 
             y = nn.forward(test_X)
             test_mse = MSE(y, test_T)
-            test_plot.append(test_mse) if n % 50 else None
+            test_plot.append(test_mse)
 
             print("Train MSE: ",train_mse," - Test MSE: ", test_mse) if n % 50 else None
             n += 1
