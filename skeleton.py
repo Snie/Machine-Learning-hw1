@@ -14,7 +14,7 @@ from Part3 import run_part3
 
 
 
-# run_part1()
+run_part1()
 run_part2()
-# run_part3()
+run_part3()
 

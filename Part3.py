@@ -3,6 +3,7 @@ from activations import *
 from mean_squared_error_functions import *
 import plotters as plt
 import numpy as np
+import random
 
 ## Part 2
 from activations import *
@@ -10,7 +11,7 @@ from mean_squared_error_functions import *
 import plotters as plt
 import numpy as np
 
-def twospirals(n_points=120, noise=1.6, twist=420):
+def twospirals(n_points=240, noise=0.6, twist=600):
     """
      Returns a two spirals dataset.
     """
@@ -48,6 +49,7 @@ class NeuralNetwork:
         self.A = []
 
         self.old_momentum = {}
+        self.momentum_parameter = 0.9
 
         self.var = {
             "W1": np.random.randn(2,20),
@@ -61,6 +63,7 @@ class NeuralNetwork:
             "W5": np.random.randn(5, 1),
             "b5": np.random.random_sample([1, 1])
         }
+        self.pre_var = self.var
         self.original = self.var.copy()
 
         ## End
@@ -172,6 +175,69 @@ class NeuralNetwork:
                    }
         return updates
 
+    # same as backwards, but it subtracts the old momentum weights delta multiplied by the momentum parameter from the current weights
+    # this accellerates the gradient descent used with momentum
+    def backward_2(self, error):
+        """
+        Backpropagates through the model and computes the derivatives. The forward function must be
+        run before hand for self.x to be defined. Returns the derivatives without applying them using
+        a dictonary similar to self.var.
+        """
+        x = self.x
+        W1 = self.var['W1'] - self.old_momentum['W1'] * self.momentum_parameter
+        b1 = self.var['b1'] - self.old_momentum['b1'] * self.momentum_parameter
+        W2 = self.var['W2'] - self.old_momentum['W2'] * self.momentum_parameter
+        b2 = self.var['b2'] - self.old_momentum['b2'] * self.momentum_parameter
+        W3 = self.var['W3'] - self.old_momentum['W3'] * self.momentum_parameter
+        b3 = self.var['b3'] - self.old_momentum['b3'] * self.momentum_parameter
+        W4 = self.var['W4'] - self.old_momentum['W4'] * self.momentum_parameter
+        b4 = self.var['b4'] - self.old_momentum['b4'] * self.momentum_parameter
+        W5 = self.var['W5'] - self.old_momentum['W5'] * self.momentum_parameter
+        b5 = self.var['b5'] - self.old_momentum['b5'] * self.momentum_parameter
+
+        ## Implement
+        # We backpropagate and we dynamically save the partial derivatives to later compute the
+        # gradient with respect to every weight
+
+        # delta at the last level is (y - Ti) activation'(Z)
+        dW5 = error * (dsigmoid(self.preA[4]))
+        db5 = np.mean(dW5)
+
+        # for all the other levels delta is: (next_level_delta)X(next_level_weights)dot(derivative of activation func applied to this level pre activation values)
+        dW4 = (dW5.dot(W5.T)) * dtanh(self.preA[3])
+        db4 = np.mean(dW4)
+
+        dW3 = (dW4.dot(W4.T)) * dtanh(self.preA[2])
+        db3 = np.mean(dW3)
+
+        dW2 = (dW3.dot(W3.T)) * dtanh(self.preA[1])
+        db2 = np.mean(dW2)
+
+        dW1 = (dW2.dot(W2.T)) * dtanh(self.preA[0])
+        db1 = np.mean(dW1)
+
+        # now we compute the gradient with respect to every weight with the following formula
+        # (current level activations transposed)X(current level delta)
+        dW5 = self.A[4].T.dot(dW5)
+        dW4 = self.A[3].T.dot(dW4)
+        dW3 = self.A[2].T.dot(dW3)
+        dW2 = self.A[1].T.dot(dW2)
+        dW1 = self.A[0].T.dot(dW1)
+
+        ## End
+        updates = {"W1": dW1,
+                   "b1": db1,
+                   "W2": dW2,
+                   "b2": db2,
+                   "W3": dW3,
+                   "b3": db3,
+                   "W4": dW4,
+                   "b4": db4,
+                   "W5": dW5,
+                   "b5": db5
+                   }
+        return updates
+    # gradient descent
     def adjust_weights(self, data, learning_rate):
         self.var['W1'] = self.var['W1'] - (data['W1']*learning_rate)
         self.var['b1'] = self.var['b1'] - (data['b1']*learning_rate)
@@ -184,21 +250,38 @@ class NeuralNetwork:
         self.var['W5'] = self.var['W5'] - (data['W5'] * learning_rate)
         self.var['b5'] = self.var['b5'] - (data['b5'] * learning_rate)
 
-    def momentum(self, data, learning_rate, momentum_parameter = 0.9):
-        updates = {"W1":(learning_rate * data['W1']) + (momentum_parameter*self.old_momentum['W1']),
-                   "b1":(learning_rate * data['b1']) + (momentum_parameter*self.old_momentum['b1']),
-                   "W2":(learning_rate * data['W2']) + (momentum_parameter*self.old_momentum['W2']),
-                   "b2":(learning_rate * data['b2']) + (momentum_parameter*self.old_momentum['b2']),
-                   "W3":(learning_rate * data['W3']) + (momentum_parameter*self.old_momentum['W3']),
-                   "b3":(learning_rate * data['b3']) + (momentum_parameter*self.old_momentum['b3']),
-                   "W4":(learning_rate * data['W4']) + (momentum_parameter * self.old_momentum['W4']),
-                   "b4":(learning_rate * data['b4']) + (momentum_parameter * self.old_momentum['b4']),
-                   "W5":(learning_rate * data['W5']) + (momentum_parameter * self.old_momentum['W5']),
-                   "b5":(learning_rate * data['b5']) + (momentum_parameter * self.old_momentum['b5'])
-                   }
-
+    # Momentum function for gradient descent
+    def momentum(self, data, learning_rate):
+        momentum_parameter = self.momentum_parameter
+        updates = {
+            "W1":(learning_rate * data['W1']) + (momentum_parameter*self.old_momentum['W1']),
+            "b1":(learning_rate * data['b1']) + (momentum_parameter*self.old_momentum['b1']),
+            "W2":(learning_rate * data['W2']) + (momentum_parameter*self.old_momentum['W2']),
+            "b2":(learning_rate * data['b2']) + (momentum_parameter*self.old_momentum['b2']),
+            "W3":(learning_rate * data['W3']) + (momentum_parameter*self.old_momentum['W3']),
+            "b3":(learning_rate * data['b3']) + (momentum_parameter*self.old_momentum['b3']),
+            "W4":(learning_rate * data['W4']) + (momentum_parameter * self.old_momentum['W4']),
+            "b4":(learning_rate * data['b4']) + (momentum_parameter * self.old_momentum['b4']),
+            "W5":(learning_rate * data['W5']) + (momentum_parameter * self.old_momentum['W5']),
+            "b5":(learning_rate * data['b5']) + (momentum_parameter * self.old_momentum['b5'])
+        }
         return updates
 
+    def scale_weights(self, data, learning_rate):
+        updates = {
+            "W1": (learning_rate * data['W1']),
+            "b1": (learning_rate * data['b1']),
+            "W2": (learning_rate * data['W2']),
+            "b2": (learning_rate * data['b2']),
+            "W3": (learning_rate * data['W3']),
+            "b3": (learning_rate * data['b3']),
+            "W4": (learning_rate * data['W4']),
+            "b4": (learning_rate * data['b4']),
+            "W5": (learning_rate * data['W5']),
+            "b5": (learning_rate * data['b5'])
+            }
+
+        return updates
 
     def adjust_momentum(self, data):
         self.var['W1'] = self.var['W1'] - (data['W1'])
@@ -260,11 +343,12 @@ def run_part3():
     print("WHOLE SET TARGETS: ", len(T))
     print(T)
 
-    learning_rates = [0.02, 0.03, 0.07, 0.01, 0.1, 0.05]
+    learning_rates = [0.01]
+    # , 0.03, 0.07, 0.01, 0.1, 0.05]
 
     # GET THE TRAINING AND TEST DATA WITH SIZE N
-    test_size = 50
-    train_size = 240
+    test_size = 96
+    train_size = 384
     test_X, test_T, train_X, train_T = get_input_data(X, T, len(X), train_size, test_size)
     print("TEST SET")
     print(test_X)
@@ -285,39 +369,51 @@ def run_part3():
     plt.plot_boundary(nn, test_X, test_T)
     plt.plot_boundary(nn, train_X, train_T)
 
+    # variables containing errors the initial values are to test convergence
     train_mse, test_mse = 2, 2
-    n = 0
-    old_train = 1
+    old_train_mse = 1
+    momentum = {}
     # variable to test convergence
     landa = 0.00000001
+    # counter for iterations
+    n = 0
+    # predictions
     for learning_rate in learning_rates:
         # convergence testing
-        while abs(old_train - train_mse) >= landa or n <= 1:
+        while abs(old_train_mse - train_mse) >= landa or n <= 1:
             y = nn.forward(train_X)
             error = dMSE(y, train_T)
-            weight_adjustments = nn.backward(error)
             if n < 1:
-                nn.old_momentum = weight_adjustments.copy()
-            if n > 0:
+                # first iteration its batch gradient descent to generate momentum pre values
+                weight_adjustments = nn.backward(error)
+                nn.old_momentum = nn.scale_weights(weight_adjustments, learning_rate)
+                nn.adjust_weights(weight_adjustments, learning_rate)
+            else:
+                # from second iteration on the network uses momentum with nesterov accellerated descent
+                weight_adjustments = nn.backward_2(error)
                 momentum = nn.momentum(weight_adjustments, learning_rate)
+                nn.adjust_momentum(momentum)
                 nn.old_momentum = momentum.copy()
-            nn.adjust_weights(weight_adjustments, learning_rate) if n < 1 else nn.adjust_momentum(momentum)
-            old_train = train_mse
+            old_train_mse = train_mse
+            # calculates mean squared error
             train_mse = MSE(y, train_T)
-            train_plot.append(train_mse) if n % 50 == 0 else None
+            train_plot.append(train_mse)
 
+            # Do a run with the test set without changing weights
             y = nn.forward(test_X)
             test_mse = MSE(y, test_T)
-            test_plot.append(test_mse) if n % 50 == 0 else None
+            test_plot.append(test_mse)
+            n += 1
             if(n > 100):
                 if(test_plot[-1] - test_plot[-2] > 0.01):
+                    print("error increasing too much")
                     break
 
-            print("Train MSE: ",train_mse," - Test MSE: ", test_mse) if n % 50 == 0 else None
-            n += 1
+            print("Train MSE: ",train_mse," - Test MSE: ", test_mse)
 
         print("Iterations: ",n)
         plt.compare_plots(train_plot, test_plot, train_mse, test_mse, learning_rate)
+        plt.plot_boundary(nn, test_X, test_T, 0.5)
         plt.plot_boundary(nn, train_X, train_T, 0.5)
         runs_info.append(run_info(train_plot, test_plot, nn.var.copy(), learning_rate))
         train_mse, test_mse = 1, 1
@@ -334,7 +430,9 @@ def run_part3():
 
 
 def get_input_data(X,T,len_X,len_train, len_test):
-    train_indexes = np.random.choice(len_X, len_train)
+    a = len_train/2
+    train_indexes = random.sample(range(int(len_X/2)), int(len_train/2))
+    train_indexes += random.sample(range(int(len_X/2), int(len_X)), int(len_train/2))
     print("INDEXES: ",train_indexes )
     test_X = np.empty([len_test, 2])
     train_X = np.empty([len_train, 2])
@@ -346,7 +444,11 @@ def get_input_data(X,T,len_X,len_train, len_test):
         train_T[n] = T[i]
         n += 1
     n = 0
-    test_indexes = np.random.choice(len_X, len_test)
+    tmp = range(len_X)
+    test_indexes = []
+    for i in tmp:
+        if(i not in train_indexes):
+            test_indexes.append(i)
     for i in test_indexes:
         test_X[n] = X[i]
         test_T[n] = T[i]

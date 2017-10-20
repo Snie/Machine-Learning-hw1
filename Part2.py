@@ -3,6 +3,7 @@ from activations import *
 from mean_squared_error_functions import *
 import plotters as plt
 import numpy as np
+import random
 
 def twospirals(n_points=120, noise=1.6, twist=420):
     """
@@ -132,7 +133,7 @@ class NeuralNetwork:
                    "W3": dW3,
                    "b3": db3}
         return updates
-
+    # stockastic
     def adjust_weights(self, data, learning_rate):
         self.var['W1'] = self.var['W1'] - (data['W1']*learning_rate)
         self.var['b1'] = self.var['b1'] - (data['b1']*learning_rate)
@@ -192,8 +193,8 @@ def run_part2():
     learning_rates = [0.02, 0.03, 0.07, 0.01, 0.1, 0.05]
 
     # GET THE TRAINING AND TEST DATA WITH SIZE N
-    test_size = 50
-    train_size = 240
+    test_size = 48
+    train_size = 192
     test_X, test_T, train_X, train_T = get_input_data(X, T, len(X), train_size, test_size)
     print("TEST SET")
     print(test_X)
@@ -234,12 +235,13 @@ def run_part2():
             test_mse = MSE(y, test_T)
             test_plot.append(test_mse)
 
-            print("Train MSE: ",train_mse," - Test MSE: ", test_mse) if n % 50 else None
+            print("Train MSE: ",train_mse," - Test MSE: ", test_mse) if n % 100 else None
             n += 1
 
         print("Iterations: ",n)
         plt.compare_plots(train_plot, test_plot, train_mse, test_mse, learning_rate)
         plt.plot_boundary(nn, train_X, train_T, 0.5)
+        # a dictionary containing all errors and weights of the neural network training with a learning rate
         runs_info.append(run_info(train_plot, test_plot, nn.var.copy(), learning_rate))
         train_mse, test_mse = 1, 1
         n = 0
@@ -255,7 +257,9 @@ def run_part2():
 
 
 def get_input_data(X,T,len_X,len_train, len_test):
-    train_indexes = np.random.choice(len_X, len_train)
+    a = len_train/2
+    train_indexes = random.sample(range(int(len_X/2)), int(len_train/2))
+    train_indexes += random.sample(range(int(len_X/2), int(len_X)), int(len_train/2))
     print("INDEXES: ",train_indexes )
     test_X = np.empty([len_test, 2])
     train_X = np.empty([len_train, 2])
@@ -267,7 +271,11 @@ def get_input_data(X,T,len_X,len_train, len_test):
         train_T[n] = T[i]
         n += 1
     n = 0
-    test_indexes = np.random.choice(len_X, len_test)
+    tmp = range(len_X)
+    test_indexes = []
+    for i in tmp:
+        if(i not in train_indexes):
+            test_indexes.append(i)
     for i in test_indexes:
         test_X[n] = X[i]
         test_T[n] = T[i]
